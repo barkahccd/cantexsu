@@ -1,0 +1,109 @@
+{
+  "settings": {
+    "baseUrl": "https://api.cantex.io",
+    "proxy": null,
+
+    "swapPair": "both",
+    "swapPairDescription": "Pilih pair: 'usdc' (CC<->USDCx), 'cbtc' (CC<->CBTC), atau 'both' (otomatis pilih target swap berdasarkan saldo token).",
+
+    "maxSwaps": 50,
+    "maxSwapsDescription": "0 = jalan terus (unlimited). Jika >0, diperlakukan sebagai target harian lalu cooldown 24 jam sebelum repeat.",
+
+    "ccAmount": {
+      "min": 11,
+      "max": 20,
+      "reserve": 0.2
+    },
+    "ccAmountDescription": "Nominal swap CC per transaksi dan saldo CC minimal yang disisakan",
+
+    "feeLimits": {
+      "maxNetworkFee": 0.1,
+      "maxSlippagePercent": 0.08,
+      "maxPoolFeePercent": 0.06
+    },
+    "feeLimitsDescription": "Rules fee tetap ketat: swap hanya jalan jika semua batas fee lolos",
+
+    "timing": {
+      "swapDelayMinMs": 20000,
+      "swapDelayMaxMs": 40000,
+      "feeRecheckDelayMinMinutes": 1,
+      "feeRecheckDelayMaxMinutes": 2
+    },
+    "timingDescription": "Delay dasar untuk micro-pause internal. Delay antar swap utama diatur per strategy (minimal 10 menit).",
+
+    "strategy": {
+      "selected": "balanced_human",
+      "quickGuide": "Pemula: cukup ubah strategy.selected. Semua strategy sudah dipaksa minimal delay antar swap 10 menit.",
+      "options": {
+        "balanced_human": {
+          "description": "Paling natural untuk mayoritas akun: sesi pendek 2-4 swap, volume campuran, delay antar swap 10-24 menit.",
+          "amountBias": "balanced",
+          "sessionSwapsMin": 2,
+          "sessionSwapsMax": 4,
+          "afterSwapDelayMinMs": 600000,
+          "afterSwapDelayMaxMs": 1440000,
+          "delayFactorMin": 1,
+          "delayFactorMax": 1.6,
+          "thinkPauseChance": 0.22,
+          "thinkPauseFactorMin": 1.3,
+          "thinkPauseFactorMax": 2.8,
+          "sessionBreakChance": 0.55,
+          "sessionBreakFactorMin": 4,
+          "sessionBreakFactorMax": 10,
+          "amountSmoothing": 0.35
+        },
+        "scalper_human": {
+          "description": "Frekuensi tinggi seperti user aktif: sesi 4-8 swap, volume kecil-menengah, delay antar swap 10-16 menit.",
+          "amountBias": "small",
+          "sessionSwapsMin": 4,
+          "sessionSwapsMax": 8,
+          "afterSwapDelayMinMs": 600000,
+          "afterSwapDelayMaxMs": 960000,
+          "delayFactorMin": 0.55,
+          "delayFactorMax": 1.1,
+          "thinkPauseChance": 0.12,
+          "thinkPauseFactorMin": 1.1,
+          "thinkPauseFactorMax": 1.9,
+          "sessionBreakChance": 0.35,
+          "sessionBreakFactorMin": 2.2,
+          "sessionBreakFactorMax": 5.5,
+          "amountSmoothing": 0.2
+        },
+        "patient_human": {
+          "description": "Lebih sabar dan santai: sesi 1-3 swap, nominal cenderung lebih besar, delay antar swap 12-36 menit.",
+          "amountBias": "large",
+          "sessionSwapsMin": 1,
+          "sessionSwapsMax": 3,
+          "afterSwapDelayMinMs": 720000,
+          "afterSwapDelayMaxMs": 2160000,
+          "delayFactorMin": 1.5,
+          "delayFactorMax": 2.7,
+          "thinkPauseChance": 0.3,
+          "thinkPauseFactorMin": 1.8,
+          "thinkPauseFactorMax": 3.5,
+          "sessionBreakChance": 0.7,
+          "sessionBreakFactorMin": 6,
+          "sessionBreakFactorMax": 14,
+          "amountSmoothing": 0.42
+        },
+        "chaotic_human": {
+          "description": "Perilaku paling random: campuran sesi cepat dan lambat dengan ukuran swap tidak monoton, delay antar swap 10-48 menit.",
+          "amountBias": "chaotic",
+          "sessionSwapsMin": 1,
+          "sessionSwapsMax": 6,
+          "afterSwapDelayMinMs": 300000,
+          "afterSwapDelayMaxMs": 2880000,
+          "delayFactorMin": 0.6,
+          "delayFactorMax": 2.3,
+          "thinkPauseChance": 0.28,
+          "thinkPauseFactorMin": 1.2,
+          "thinkPauseFactorMax": 4,
+          "sessionBreakChance": 0.6,
+          "sessionBreakFactorMin": 3,
+          "sessionBreakFactorMax": 16,
+          "amountSmoothing": 0.25
+        }
+      }
+    }
+  }
+}

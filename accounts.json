@@ -1,0 +1,12 @@
+[
+  {
+    "name": "Akun 1",
+    "operatorKey": "PASTE_OPERATOR_KEY_1_HERE",
+    "intentTradingKey": "PASTE_INTENT_TRADING_KEY_1_HERE"
+  },
+  {
+    "name": "Akun 2",
+    "operatorKey": "PASTE_OPERATOR_KEY_2_HERE",
+    "intentTradingKey": "PASTE_INTENT_TRADING_KEY_2_HERE"
+  }
+]

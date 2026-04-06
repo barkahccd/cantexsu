@@ -1,0 +1,69 @@
+TUTORIAL SINGKAT CANTEX BOT
+
+1) Persiapan
+- Pastikan Node.js v18 atau lebih baru terpasang.
+- Buka folder project lalu install dependency:
+  npm install
+
+2) Isi akun di accounts.json
+- Tambahkan semua akun yang ingin dijalankan.
+- Format minimum per akun:
+  [
+    {
+      "name": "Acc 1",
+      "operatorKey": "HEX_64_CHAR",
+      "intentTradingKey": "HEX_64_CHAR"
+    }
+  ]
+- Untuk multi akun, tinggal tambah object akun lain di array yang sama.
+
+3) Atur config.json (yang paling penting)
+- swapPair:
+  both  = bot otomatis pilih target swap (USDCx/CBTC) berdasarkan saldo.
+  usdc  = hanya CC <-> USDCx.
+  cbtc  = hanya CC <-> CBTC.
+
+- maxSwaps:
+  0     = unlimited (jalan terus).
+  > 0   = target swap harian per akun.
+          Saat tercapai, akun cooldown 24 jam lalu lanjut otomatis.
+
+- ccAmount:
+  min/max = range nominal CC per swap.
+  reserve = saldo CC yang selalu disisakan.
+
+- feeLimits:
+  maxNetworkFee, maxSlippagePercent, maxPoolFeePercent.
+  Swap hanya jalan jika semua batas fee lolos.
+
+- strategy.selected:
+  balanced_human / scalper_human / patient_human / chaotic_human.
+
+- Delay antar swap utama sudah human-like dan dipaksa minimal 10 menit.
+  Bisa atur per strategi lewat:
+  afterSwapDelayMinMs dan afterSwapDelayMaxMs.
+
+4) Jalankan bot
+- Jalankan:
+  node index.js
+
+5) Cara baca dashboard
+- Swaps: ringkasan total swap sukses/gagal.
+- Target: maxSwaps/day.
+- Cooldown: jumlah akun yang sedang cooldown 24 jam.
+- Status akun:
+  IDLE, SWAPPING, FEE-WAIT, BULK-BACK, ERROR, COOLDOWN.
+- Jika COOLDOWN, akan tampil countdown format CD HH:MM:SS.
+- Footer global menampilkan Next cycle in: HH:MM:SS jika ada akun cooldown.
+
+6) Eksekusi multi akun
+- Semua akun dijalankan paralel.
+- Startup setiap akun di-stagger beberapa detik agar tidak meledak bersamaan.
+
+7) Stop bot
+- Tekan Ctrl+C.
+
+8) Saran aman
+- Mulai dari nominal kecil dulu.
+- Jangan longgarkan feeLimits terlalu agresif.
+- Simpan operatorKey dan intentTradingKey dengan aman.
