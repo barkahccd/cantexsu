@@ -27,6 +27,7 @@ function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 function rng(a, b) { return a + Math.random() * (b - a); }
 const MIN_SWAP_DELAY_BETWEEN_SWAPS_MS = 10 * 60 * 1000;
 const DAILY_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+const REWARD_ACTIVITY_REFRESH_MS = 5 * 60 * 1000;
 
 function fmtAmt(v, d = 10) {
   const f = 10 ** d;
@@ -533,6 +534,10 @@ class Account {
     this.rewardRank = '-';
     this.rewardDay = '';
     this.rewardPaused = false;
+    this.thisWeekRebate = null;
+    this.yesterdayRebate = null;
+    this.rebateUpdatedAt = 0;
+    this.rebateFetchPromise = null;
     this.strategyState = {
       sessionTarget: 0,
       sessionDone: 0,
@@ -547,7 +552,7 @@ class Account {
     if (this.logs.length > 6) this.logs.shift();
 
     globalLogs.push(`[${timeStr}] [${this.name}] ${msg}`);
-    if (globalLogs.length > 15) globalLogs.shift();
+    if (globalLogs.length > 5) globalLogs.shift();
   }
 
   async _fetch(url, opts = {}) {
@@ -643,7 +648,35 @@ class Account {
     this.ccL = bals.CC?.locked || 0;
     this.cbtcL = bals.CBTC?.locked || 0;
     this.usdcxL = bals.USDCx?.locked || 0;
+
+    if (!this.rebateFetchPromise && (Date.now() - this.rebateUpdatedAt >= REWARD_ACTIVITY_REFRESH_MS)) {
+      this.refreshRewardActivity().catch(() => {});
+    }
+
     return bals;
+  }
+
+  async refreshRewardActivity(force = false) {
+    const nowMs = Date.now();
+    if (!force && nowMs - this.rebateUpdatedAt < REWARD_ACTIVITY_REFRESH_MS) return;
+    if (this.rebateFetchPromise) return this.rebateFetchPromise;
+
+    this.rebateFetchPromise = (async () => {
+      const resp = await this.api('/v1/account/reward_activity');
+      if (resp.status !== 200 || !isObj(resp.data)) return;
+
+      const rebates = isObj(resp.data.rebates) ? resp.data.rebates : {};
+      const weekVal = Number(rebates.this_week?.cc_amount);
+      const yesterdayVal = Number(rebates.yesterday?.cc_amount);
+
+      if (Number.isFinite(weekVal)) this.thisWeekRebate = weekVal;
+      if (Number.isFinite(yesterdayVal)) this.yesterdayRebate = yesterdayVal;
+      this.rebateUpdatedAt = Date.now();
+    })().catch(() => {}).finally(() => {
+      this.rebateFetchPromise = null;
+    });
+
+    return this.rebateFetchPromise;
   }
 
   async getQuote(sell, buy, amt) {
@@ -872,13 +905,17 @@ function render(accounts) {
     const swapStr = isBoth
       ? (a.totalSwaps + '(cc' + a.swapCC + '|us' + a.swapUsdc + '|cb' + a.swapCbtc + ')')
       : (a.totalSwaps + '(cc' + a.swapCC + '|' + pairInfo.swapShort + (pairInfo.buyToken === 'CBTC' ? a.swapCbtc : a.swapUsdc) + ')');
+    const thisWeekRebate = Number.isFinite(a.thisWeekRebate) ? a.thisWeekRebate.toFixed(4) : '-';
+    const yesterdayRebate = Number.isFinite(a.yesterdayRebate) ? a.yesterdayRebate.toFixed(4) : '-';
 
     return {
       akun: String(a.name),
       status: String(st),
       cc: a.cc.toFixed(2),
       pairBal: String(buyBal),
-      swaps: String(swapStr)
+      swaps: String(swapStr),
+      thisWeekRebates: String(thisWeekRebate),
+      yesterdayRebates: String(yesterdayRebate)
     };
   });
 
@@ -887,20 +924,26 @@ function render(accounts) {
   const wCC = Math.max('CC'.length, ...rows.map(r => r.cc.length));
   const wPair = Math.max(pairInfo.colLabel.length, ...rows.map(r => r.pairBal.length));
   const wSwaps = Math.max('Swaps'.length, ...rows.map(r => r.swaps.length));
+  const wThisWeekRebates = Math.max('This Week Rebates'.length, ...rows.map(r => r.thisWeekRebates.length));
+  const wYesterdayRebates = Math.max('Yesterday Rebates'.length, ...rows.map(r => r.yesterdayRebates.length));
 
   const headerRow = ' '
     + col('Akun', wAkun)
     + '  ' + col('Status', wStatus)
     + '  ' + col('CC', wCC, 'right')
     + '  ' + col(pairInfo.colLabel, wPair)
-    + '  ' + col('Swaps', wSwaps);
+    + '  ' + col('Swaps', wSwaps)
+    + '  ' + col('This Week Rebates', wThisWeekRebates, 'right')
+    + '  ' + col('Yesterday Rebates', wYesterdayRebates, 'right');
 
   const dividerRow = ' '
     + '-'.repeat(wAkun)
     + '  ' + '-'.repeat(wStatus)
     + '  ' + '-'.repeat(wCC)
     + '  ' + '-'.repeat(wPair)
-    + '  ' + '-'.repeat(wSwaps);
+    + '  ' + '-'.repeat(wSwaps)
+    + '  ' + '-'.repeat(wThisWeekRebates)
+    + '  ' + '-'.repeat(wYesterdayRebates);
 
   const dataRows = rows.map(function(r) {
     return ' '
@@ -908,7 +951,9 @@ function render(accounts) {
       + '  ' + col(r.status, wStatus)
       + '  ' + col(r.cc, wCC, 'right')
       + '  ' + col(r.pairBal, wPair)
-      + '  ' + col(r.swaps, wSwaps);
+      + '  ' + col(r.swaps, wSwaps)
+      + '  ' + col(r.thisWeekRebates, wThisWeekRebates, 'right')
+      + '  ' + col(r.yesterdayRebates, wYesterdayRebates, 'right');
   });
 
   const titleLine = 'CANTEX AUTO-SWAP BOT v2.1  |  ' + wibStr + ' WIB  |  ' + accounts.length + ' akun  |  Mode: ' + modeStr + '  |  Strat: ' + strategyInfo.key;
@@ -1187,7 +1232,12 @@ async function main() {
   await Promise.all(accounts.map(async function(a) {
     const ok = await a.authRetry(5);
     if (ok) {
-      try { await a.getBal(); } catch (e) { a.log('⚠️ getBal: ' + e.message); }
+      try {
+        await a.getBal();
+        await a.refreshRewardActivity(true);
+      } catch (e) {
+        a.log('⚠️ getBal/reward: ' + e.message);
+      }
     }
   }));
 
